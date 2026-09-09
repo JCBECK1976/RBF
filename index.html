@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>RBF Dashboard</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #0d1117; color: #c9d1d9; font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif; -webkit-font-smoothing: antialiased; }
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+var SK = "rbf-v6";
+var PK = "rbf-prices-v1";
+var DEFAULT_FX = 1.35;
+
+var INIT = [
+  { t: "BE", n: "Bloom Energy", cat: "growth", bkt: 20000, sh: 287, avg: 47.038, cur: "USD", cv: 57374, yah: "BE" },
+  { t: "IONQ", n: "IonQ", cat: "growth", bkt: 10000, sh: 400, avg: 33.75, cur: "USD", cv: 11325, yah: "IONQ" },
+  { t: "QS", n: "QuantumScape", cat: "growth", bkt: 10000, sh: 2741, avg: 4.925, cur: "USD", cv: 10622, sp: 6.27, yah: "QS" },
+  { t: "BROS", n: "Dutch Bros", cat: "std", bkt: 20000, sh: 596, avg: 45.302, cur: "USD", cv: 19893, yah: "BROS" },
+  { t: "SFM", n: "Sprouts Farmers", cat: "std", bkt: 20000, sh: 364, avg: 74.176, cur: "USD", cv: 19756, yah: "SFM" },
+  { t: "NOW", n: "ServiceNow", cat: "std", bkt: 20000, sh: 102, avg: 132.353, cur: "USD", cv: 9928, yah: "NOW" },
+  { t: "DFS", n: "DFS Furniture", cat: "std", bkt: 20000, sh: 14065, avg: 142.197, cur: "GBP", cv: 20394, yah: "DFS.L" },
+  { t: "PATH", n: "UiPath", cat: "std", bkt: 10000, sh: 988, avg: 13.664, cur: "USD", cv: 9953, yah: "PATH" },
+  { t: "AMZN", n: "Amazon", cat: "std", bkt: 10000, sh: 61, avg: 221.311, cur: "USD", cv: 11430, yah: "AMZN" },
+  { t: "TSM", n: "TSMC", cat: "std", bkt: 10000, sh: 36, avg: 375.00, cur: "USD", cv: 11635, yah: "TSM" },
+  { t: "BTRW", n: "Barratt Redrow", cat: "std", bkt: 20000, sh: 3657, avg: 273.449, cur: "GBP", cv: 10744, yah: "BTRW.L" },
+  { t: "DNLM", n: "Dunelm", cat: "std", bkt: 20000, sh: 2781, avg: 719.166, cur: "GBP", cv: 20412, yah: "DNLM.L" },
+  { t: "AV.", n: "Aviva", cat: "std", bkt: 20000, sh: 3033, avg: 659.413, cur: "GBP", cv: 21376, yah: "AV.L" },
+  { t: "WIX", n: "Wickes", cat: "std", bkt: 20000, sh: 11840, avg: 168.919, cur: "GBP", cv: 21548, yah: "WIX.L" },
+  { t: "RMV", n: "Rightmove", cat: "std", bkt: 20000, sh: 4316, avg: 463.392, cur: "GBP", cv: 20164, yah: "RMV.L" },
+  { t: "AUTO", n: "Auto Trader", cat: "std", bkt: 20000, sh: 4071, avg: 491.28, cur: "GBP", cv: 19907, yah: "AUTO.L" },
+  { t: "SGLN", n: "Gold ETC", cat: "hedge", bkt: 20000, sh: 348, avg: 5747.126, cur: "GBP", cv: 21924, yah: "SGLN.L" },
+  { t: "SSLN", n: "Silver ETC", cat: "hedge", bkt: 20000, sh: 512, avg: 3906.25, cur: "GBP", cv: 24176, yah: "SSLN.L" },
+];
+
+var SHEET_ID = "1VGCHOdXhRkYwY6SlavVUoSL4cSyYOe7efCuUM5LiO7g";
+
+function sellAt(p, fxRate) {
+  var fee = 10;
+  var harvest = p.bkt >= 20000 ? 3000 : p.bkt >= 15000 ? 2250 : 1500;
+  var hT = p.cur === "GBP" ? harvest : harvest * fxRate;
+  var raw = p.avg * 1.25;
+  var sts = raw > 0 ? (hT + fee) / (p.cur === "GBP" ? raw / 100 : raw) : 0;
+  var adj = sts > 0 ? fee / sts : 0;
+  return p.cur === "GBP" ? Math.ceil((raw + adj * 100) * 100) / 100 : Math.ceil((raw + adj) * 100) / 100;
+}
+function buyAt(p) { return Math.floor(p.avg * 0.95 * 100) / 100; }
+function fp(v, c) { if (!v) return "--"; return c === "GBP" ? v.toFixed(2) + "p" : "$" + v.toFixed(2); }
+function fg(v) { return "\u00A3" + Math.round(v).toLocaleString("en-GB"); }
+
+function App() {
+  var [data, setData] = React.useState(INIT);
+  var [cash, setCash] = React.useState(212128.65);
+  var [tab, setTab] = React.useState("main");
+  var [editing, setEditing] = React.useState(null);
+  var [fSh, setFSh] = React.useState("");
+  var [fAv, setFAv] = React.useState("");
+  var [fCv, setFCv] = React.useState("");
+  var [editH, setEditH] = React.useState(false);
+  var [fC, setFC] = React.useState("");
+  var [msg, setMsg] = React.useState("");
+  var [prices, setPrices] = React.useState({});
+  var [priceStatus, setPriceStatus] = React.useState("idle");
+  var [priceTime, setPriceTime] = React.useState("");
+  var [fx, setFx] = React.useState(DEFAULT_FX);
+
+  React.useEffect(function() {
+    var saved = localStorage.getItem(SK);
+    if (saved) {
+      try {
+        var d = JSON.parse(saved);
+        if (d.data) setData(d.data);
+        if (d.cash != null) setCash(d.cash);
+      } catch(e) {}
+    }
+    var savedP = localStorage.getItem(PK);
+    if (savedP) {
+      try {
+        var pd = JSON.parse(savedP);
+        if (pd.prices) setPrices(pd.prices);
+        if (pd.time) setPriceTime(pd.time);
+        if (pd.fx) setFx(pd.fx);
+        setPriceStatus("cached");
+      } catch(e) {}
+    }
+    doFetchPrices();
+  }, []);
+
+  function doSave(nd, nc) {
+    var obj = { data: nd || data, cash: nc != null ? nc : cash };
+    localStorage.setItem(SK, JSON.stringify(obj));
+    setMsg("Saved"); setTimeout(function() { setMsg(""); }, 2000);
+  }
+
+  function doFetchPrices() {
+    setPriceStatus("loading");
+    var urls = [
+      "https://docs.google.com/spreadsheets/d/" + SHEET_ID + "/gviz/tq?tqx=out:csv",
+      "https://docs.google.com/spreadsheets/d/" + SHEET_ID + "/export?format=csv"
+    ];
+    (function tryFetch(i) {
+      if (i >= urls.length) {
+        setPriceStatus(Object.keys(prices).length > 0 ? "cached" : "failed");
+        return;
+      }
+      fetch(urls[i]).then(function(res) {
+        if (!res.ok) throw new Error("HTTP " + res.status);
+        return res.text();
+      }).then(function(text) {
+        if (!text || text.indexOf("Ticker") < 0) throw new Error("Bad data");
+        var lines = text.split("\n");
+        var map = {};
+        var liveFx = null;
+        for (var j = 1; j < lines.length; j++) {
+          var line = lines[j].replace(/"/g, "").trim();
+          if (!line) continue;
+          var cols = line.split(",");
+          if (cols.length < 2) continue;
+          var ticker = cols[0].trim();
+          var price = parseFloat(cols[1]);
+          var change = parseFloat(cols[2]) || 0;
+          if (!ticker || isNaN(price)) continue;
+          if (ticker === "FX") { liveFx = price; continue; }
+          var key = ticker === "AV" ? "AV." : ticker;
+          map[key] = { p: price, c: change };
+        }
+        if (Object.keys(map).length === 0) throw new Error("No prices");
+        setPrices(map);
+        if (liveFx && liveFx > 0) setFx(liveFx);
+        var now = new Date();
+        var timeStr = now.toLocaleDateString("en-GB") + " " + now.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+        setPriceTime(timeStr);
+        setPriceStatus("live");
+        localStorage.setItem(PK, JSON.stringify({ prices: map, time: timeStr, fx: liveFx || fx }));
+      }).catch(function() { tryFetch(i + 1); });
+    })(0);
+  }
+
+  function getP(p) { return prices[p.t] || null; }
+  function getLiveVal(p) {
+    var pd = getP(p);
+    if (!pd || !pd.p) return p.cv || 0;
+    if (p.cur === "GBP") return (p.sh * pd.p) / 100;
+    return (p.sh * pd.p) / fx;
+  }
+
+  function startEdit(p) { setEditing(p.t); setFSh(String(p.sh)); setFAv(String(p.avg)); setFCv(String(p.cv || "")); }
+  function applyEdit() {
+    var ns = parseFloat(fSh), na = parseFloat(fAv), ncv = parseFloat(fCv);
+    if (isNaN(ns) || isNaN(na) || ns <= 0 || na <= 0) return;
+    var updated = data.map(function(p) {
+      if (p.t !== editing) return p;
+      var u = Object.assign({}, p, { sh: ns, avg: na });
+      if (!isNaN(ncv) && ncv >= 0) u.cv = ncv;
+      return u;
+    });
+    setData(updated); doSave(updated); setEditing(null);
+  }
+
+  var posTotal = data.reduce(function(sum, p) { return sum + getLiveVal(p); }, 0);
+  var total = posTotal + cash;
+  var cashPct = total > 0 ? (cash / total * 100).toFixed(1) : "0";
+
+  var sorted = data.slice().sort(function(a, b) {
+    var va = getLiveVal(a), vb = getLiveVal(b);
+    var aSell = a.cat === "std" && va >= a.bkt * 1.25 ? 0 : 2;
+    var bSell = b.cat === "std" && vb >= b.bkt * 1.25 ? 0 : 2;
+    var aGr = a.cat === "growth" && total > 0 && va / total >= 0.15 ? 0 : 2;
+    var bGr = b.cat === "growth" && total > 0 && vb / total >= 0.15 ? 0 : 2;
+    var aPri = Math.min(aSell, aGr), bPri = Math.min(bSell, bGr);
+    if (aPri !== bPri) return aPri - bPri;
+    var pa = getP(a), pb = getP(b);
+    return Math.abs(pb ? pb.c : 0) - Math.abs(pa ? pa.c : 0);
+  });
+
+  var card = { background: "#161b22", borderRadius: 8, padding: "12px 14px", marginBottom: 8 };
+  var iS = { width: "100%", padding: "10px 12px", background: "#0d1117", border: "1px solid #30363d", borderRadius: 6, color: "#f0f6fc", fontSize: 15, boxSizing: "border-box" };
+  var bG = { flex: 1, padding: "10px 0", background: "#238636", color: "#fff", border: "none", borderRadius: 6, fontWeight: 600, fontSize: 14, cursor: "pointer" };
+  var bC = { padding: "10px 16px", background: "transparent", color: "#8b949e", border: "1px solid #30363d", borderRadius: 6, fontSize: 14, cursor: "pointer" };
+
+  function Stat(props) {
+    return React.createElement("div", { style: { flex: 1, minWidth: 0 } },
+      React.createElement("div", { style: { fontSize: 10, color: "#6e7681", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 2 } }, props.l),
+      React.createElement("div", { style: { fontSize: 14, fontWeight: 600, color: props.c || "#c9d1d9", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" } }, props.v)
+    );
+  }
+
+  function renderCard(p) {
+    var pd = getP(p);
+    var cv = getLiveVal(p);
+    var pl = cv - p.bkt;
+    var sT = sellAt(p, fx);
+    var bT = buyAt(p);
+    var priceStr = pd && pd.p ? fp(pd.p, p.cur) : "--";
+    var chg = pd ? (pd.c || 0) : 0;
+    var chgC = chg > 0 ? "#3fb950" : chg < 0 ? "#f85149" : "#8b949e";
+    var chgS = pd ? (chg > 0 ? "+" : "") + chg.toFixed(2) + "%" : "";
+
+    if (p.cat === "growth") {
+      var pctP = total > 0 && cv > 0 ? (cv / total * 100) : 0;
+      var over = pctP >= 15;
+      var trimTo = total * 0.10;
+      var trimAmt = cv - trimTo;
+      return React.createElement("div", { key: p.t, style: Object.assign({}, card, { borderLeft: over ? "3px solid #f85149" : "3px solid #e2b340" }) },
+        React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "flex-start" } },
+          React.createElement("div", null,
+            React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" } },
+              React.createElement("span", { style: { fontSize: 17, fontWeight: 800, color: "#f0f6fc" } }, p.t),
+              React.createElement("span", { style: { fontSize: 14, fontWeight: 600, color: "#c9d1d9" } }, priceStr),
+              chgS && React.createElement("span", { style: { fontSize: 12, fontWeight: 600, color: chgC } }, chgS)
+            ),
+            React.createElement("div", { style: { fontSize: 11, color: "#8b949e", marginTop: 2 } }, p.n)
+          ),
+          React.createElement("div", { style: { padding: "4px 10px", borderRadius: 6, textAlign: "center", background: over ? "#f8514918" : "#3fb95018", border: "1px solid " + (over ? "#f8514940" : "#3fb95040"), minWidth: 55 } },
+            React.createElement("div", { style: { fontSize: 16, fontWeight: 800, color: over ? "#f85149" : "#3fb950" } }, pctP > 0 ? pctP.toFixed(1) + "%" : "--"),
+            React.createElement("div", { style: { fontSize: 9, color: over ? "#f85149" : "#3fb950" } }, "of portfolio")
+          )
+        ),
+        React.createElement("div", { style: { display: "flex", gap: 8, marginTop: 8 } },
+          React.createElement(Stat, { l: "Value", v: cv > 0 ? fg(cv) : "--" }),
+          React.createElement(Stat, { l: "P/L", v: cv > 0 ? (pl >= 0 ? "+" : "") + fg(Math.round(pl)) : "--", c: pl >= 0 ? "#3fb950" : "#f85149" }),
+          React.createElement(Stat, { l: "Bucket", v: fg(p.bkt) })
+        ),
+        React.createElement("div", { style: { display: "flex", gap: 8, marginTop: 4 } },
+          React.createElement(Stat, { l: "Shares", v: p.sh.toLocaleString() }),
+          React.createElement(Stat, { l: "Avg", v: fp(p.avg, p.cur) })
+        ),
+        over && React.createElement("div", { style: { marginTop: 8, padding: "8px 10px", background: "#f8514915", borderRadius: 6, border: "1px solid #f8514930" } },
+          React.createElement("div", { style: { fontSize: 13, fontWeight: 700, color: "#f85149" } }, "CEILING BREACHED"),
+          React.createElement("div", { style: { fontSize: 12, color: "#f0f6fc" } }, "Sell " + fg(Math.round(trimAmt)) + " to get to 10% (" + fg(Math.round(trimTo)) + ")")
+        ),
+        !over && cv > 0 && React.createElement("div", { style: { marginTop: 8, padding: "6px 10px", background: "#3fb95010", borderRadius: 6, border: "1px solid #3fb95020" } },
+          React.createElement("div", { style: { fontSize: 11, color: "#3fb950" } }, "Within limits - " + fg(Math.round(total * 0.15 - cv)) + " headroom")
+        ),
+        p.sp && React.createElement("div", { style: { marginTop: 8, padding: "8px 10px", background: "#e2b34010", borderRadius: 6, border: "1px solid #e2b34030" } },
+          React.createElement("div", { style: { fontSize: 12, fontWeight: 600, color: "#e2b340" } }, "Special Exit: " + fp(p.sp, p.cur)),
+          React.createElement("div", { style: { fontSize: 11, color: "#c9d1d9" } }, "Sell 1,872 shares, hold 2,153. Banks " + fg(5000) + " + recovers losses")
+        )
+      );
+    }
+
+    if (p.cat === "hedge") {
+      return React.createElement("div", { key: p.t, style: Object.assign({}, card, { borderLeft: "3px solid #d4a017" }) },
+        React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center" } },
+          React.createElement("div", null,
+            React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8 } },
+              React.createElement("span", { style: { fontSize: 17, fontWeight: 800, color: "#f0f6fc" } }, p.t),
+              React.createElement("span", { style: { fontSize: 14, fontWeight: 600, color: "#c9d1d9" } }, priceStr),
+              chgS && React.createElement("span", { style: { fontSize: 12, fontWeight: 600, color: chgC } }, chgS)
+            ),
+            React.createElement("div", { style: { fontSize: 11, color: "#8b949e", marginTop: 2 } }, p.n)
+          ),
+          React.createElement("span", { style: { fontSize: 10, fontWeight: 700, padding: "3px 8px", borderRadius: 4, background: "#d4a01720", color: "#d4a017" } }, "HEDGE")
+        ),
+        React.createElement("div", { style: { display: "flex", gap: 8, marginTop: 8 } },
+          React.createElement(Stat, { l: "Value", v: cv > 0 ? fg(cv) : "--" }),
+          React.createElement(Stat, { l: "Shares", v: p.sh.toLocaleString() }),
+          React.createElement(Stat, { l: "Avg", v: fp(p.avg, p.cur) })
+        )
+      );
+    }
+
+    // Standard stock
+    var isSell = cv > 0 && cv >= p.bkt * 1.25;
+    var isBuy = pd && pd.p > 0 && pd.p <= bT;
+    var profitHold = p.bkt * 0.10;
+    var harvestAmt = cv - p.bkt - profitHold;
+    var bc = isSell ? "#f85149" : isBuy ? "#58a6ff" : "#30363d";
+
+    return React.createElement("div", { key: p.t, style: Object.assign({}, card, { borderLeft: "3px solid " + bc }) },
+      React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "flex-start" } },
+        React.createElement("div", null,
+          React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" } },
+            React.createElement("span", { style: { fontSize: 17, fontWeight: 800, color: "#f0f6fc" } }, p.t),
+            React.createElement("span", { style: { fontSize: 14, fontWeight: 600, color: "#c9d1d9" } }, priceStr),
+            chgS && React.createElement("span", { style: { fontSize: 12, fontWeight: 600, color: chgC } }, chgS)
+          ),
+          React.createElement("div", { style: { fontSize: 11, color: "#8b949e", marginTop: 2 } }, p.n)
+        ),
+        isSell && React.createElement("span", { style: { fontSize: 11, fontWeight: 700, padding: "3px 8px", borderRadius: 4, background: "#f8514930", color: "#f85149" } }, "SELL"),
+        isBuy && !isSell && React.createElement("span", { style: { fontSize: 11, fontWeight: 700, padding: "3px 8px", borderRadius: 4, background: "#58a6ff30", color: "#58a6ff" } }, "BUY")
+      ),
+      isSell && React.createElement("div", { style: { marginTop: 8, padding: "8px 10px", background: "#f8514915", borderRadius: 6, border: "1px solid #f8514930" } },
+        React.createElement("div", { style: { fontSize: 13, fontWeight: 700, color: "#f85149" } }, "HARVEST TRIGGERED"),
+        React.createElement("div", { style: { fontSize: 12, color: "#f0f6fc" } }, "Sell " + fg(Math.max(0, Math.round(harvestAmt))) + " (hold " + fg(profitHold) + " cushion)")
+      ),
+      isBuy && !isSell && React.createElement("div", { style: { marginTop: 8, padding: "8px 10px", background: "#58a6ff15", borderRadius: 6, border: "1px solid #58a6ff30" } },
+        React.createElement("div", { style: { fontSize: 13, fontWeight: 700, color: "#58a6ff" } }, "BUY TRIGGER HIT"),
+        React.createElement("div", { style: { fontSize: 12, color: "#f0f6fc" } }, "Deploy " + (p.cur === "GBP" ? fg(1000) : "$1,350") + " tranche")
+      ),
+      React.createElement("div", { style: { display: "flex", gap: 8, marginTop: 8 } },
+        React.createElement(Stat, { l: "Value", v: cv > 0 ? fg(cv) : "--" }),
+        React.createElement(Stat, { l: "P/L", v: cv > 0 ? (pl >= 0 ? "+" : "") + fg(Math.round(pl)) : "--", c: pl >= 0 ? "#3fb950" : "#f85149" }),
+        React.createElement(Stat, { l: "Bucket", v: fg(p.bkt) })
+      ),
+      React.createElement("div", { style: { display: "flex", gap: 8, marginTop: 4 } },
+        React.createElement(Stat, { l: "Sell @", v: fp(sT, p.cur), c: "#3fb950" }),
+        React.createElement(Stat, { l: "Buy @", v: fp(bT, p.cur), c: "#58a6ff" })
+      ),
+      !isSell && !isBuy && cv > 0 && React.createElement("div", { style: { marginTop: 6, fontSize: 11, color: "#6e7681" } }, fg(Math.round(p.bkt * 1.25 - cv)) + " to sell trigger")
+    );
+  }
+
+  return React.createElement("div", { style: { background: "#0d1117", color: "#c9d1d9", minHeight: "100vh", fontFamily: "-apple-system, sans-serif", paddingBottom: 80 } },
+    // Header
+    React.createElement("div", { style: { padding: "20px 16px 16px", borderBottom: "1px solid #21262d", background: "#161b22" } },
+      React.createElement("div", { style: { display: "flex", justifyContent: "space-between" } },
+        React.createElement("div", null,
+          React.createElement("div", { style: { fontSize: 10, textTransform: "uppercase", letterSpacing: 2, color: "#58a6ff", fontWeight: 600 } }, "RBF Dashboard"),
+          React.createElement("div", { style: { fontSize: 28, fontWeight: 800, color: "#f0f6fc", marginTop: 4 } }, fg(total)),
+          React.createElement("div", { style: { fontSize: 12, color: "#8b949e" } }, "Portfolio")
+        ),
+        React.createElement("div", { style: { textAlign: "right" } },
+          React.createElement("div", { style: { fontSize: 22, fontWeight: 700, color: parseFloat(cashPct) >= 15 ? "#3fb950" : "#f85149" } }, fg(cash)),
+          React.createElement("div", { style: { fontSize: 12, color: "#8b949e" } }, "Cash (" + cashPct + "%)")
+        )
+      ),
+      React.createElement("div", { style: { display: "flex", gap: 8, marginTop: 10, alignItems: "center", flexWrap: "wrap" } },
+        !editH && React.createElement("button", { onClick: function() { setEditH(true); setFC(String(cash)); }, style: { padding: "6px 12px", background: "#21262d", border: "1px solid #30363d", borderRadius: 6, color: "#8b949e", fontSize: 11, cursor: "pointer" } }, "Update Cash"),
+        React.createElement("button", { onClick: doFetchPrices, style: { padding: "6px 12px", background: "#21262d", border: "1px solid #30363d", borderRadius: 6, color: "#58a6ff", fontSize: 11, cursor: "pointer" } }, priceStatus === "loading" ? "Loading..." : "Refresh Prices")
+      ),
+      React.createElement("div", { style: { fontSize: 11, color: "#6e7681", marginTop: 4 } }, "Invested: " + fg(Math.round(posTotal))),
+      React.createElement("div", { style: { marginTop: 4, fontSize: 11 } },
+        priceStatus === "live" && React.createElement("span", { style: { color: "#3fb950" } }, "Live - " + priceTime + " | FX: $" + fx.toFixed(4) + "/\u00A3"),
+        priceStatus === "cached" && React.createElement("span", { style: { color: "#e2b340" } }, "Cached - " + priceTime + " | FX: $" + fx.toFixed(4) + "/\u00A3"),
+        priceStatus === "failed" && React.createElement("span", { style: { color: "#f85149" } }, "Prices unavailable | FX: $" + fx.toFixed(2) + "/\u00A3"),
+        priceStatus === "loading" && React.createElement("span", { style: { color: "#58a6ff" } }, "Fetching prices...")
+      ),
+      editH && React.createElement("div", { style: { marginTop: 10, background: "#0d1117", padding: 12, borderRadius: 8, border: "1px solid #30363d" } },
+        React.createElement("div", { style: { marginBottom: 8 } },
+          React.createElement("div", { style: { fontSize: 10, color: "#8b949e", marginBottom: 3 } }, "CASH"),
+          React.createElement("input", { type: "number", value: fC, onChange: function(e) { setFC(e.target.value); }, style: iS, inputMode: "decimal" })
+        ),
+        React.createElement("div", { style: { display: "flex", gap: 8 } },
+          React.createElement("button", { onClick: function() { var nc = parseFloat(fC); if (!isNaN(nc)) { setCash(nc); doSave(data, nc); setEditH(false); } }, style: bG }, "Apply"),
+          React.createElement("button", { onClick: function() { setEditH(false); }, style: bC }, "Cancel")
+        )
+      ),
+      msg && React.createElement("div", { style: { fontSize: 11, color: "#3fb950", marginTop: 6 } }, msg)
+    ),
+
+    // Tabs
+    React.createElement("div", { style: { display: "flex", borderBottom: "1px solid #21262d", background: "#161b22", position: "sticky", top: 0, zIndex: 10 } },
+      React.createElement("button", { onClick: function() { setTab("main"); setEditing(null); }, style: { flex: 1, padding: "12px 0", border: "none", cursor: "pointer", background: tab === "main" ? "#0d1117" : "transparent", color: tab === "main" ? "#58a6ff" : "#8b949e", fontWeight: tab === "main" ? 600 : 400, fontSize: 13, borderBottom: tab === "main" ? "2px solid #58a6ff" : "2px solid transparent" } }, "Triggers"),
+      React.createElement("button", { onClick: function() { setTab("edit"); setEditing(null); }, style: { flex: 1, padding: "12px 0", border: "none", cursor: "pointer", background: tab === "edit" ? "#0d1117" : "transparent", color: tab === "edit" ? "#58a6ff" : "#8b949e", fontWeight: tab === "edit" ? 600 : 400, fontSize: 13, borderBottom: tab === "edit" ? "2px solid #58a6ff" : "2px solid transparent" } }, "Edit")
+    ),
+
+    // Content
+    React.createElement("div", { style: { padding: 12 } },
+      tab === "main" && sorted.map(function(p) { return renderCard(p); }),
+      tab === "main" && React.createElement("div", { style: Object.assign({}, card, { marginTop: 12, borderLeft: "3px solid #8b949e" }) },
+        React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center" } },
+          React.createElement("div", null,
+            React.createElement("div", { style: { fontSize: 10, color: "#8b949e", textTransform: "uppercase", letterSpacing: 1 } }, "Cash Reserve"),
+            React.createElement("div", { style: { fontSize: 20, fontWeight: 700, color: "#f0f6fc" } }, fg(cash))
+          ),
+          React.createElement("div", { style: { padding: "4px 10px", borderRadius: 6, background: parseFloat(cashPct) >= 15 ? "#3fb95018" : "#f8514918", border: "1px solid " + (parseFloat(cashPct) >= 15 ? "#3fb95040" : "#f8514940") } },
+            React.createElement("div", { style: { fontSize: 13, fontWeight: 700, color: parseFloat(cashPct) >= 15 ? "#3fb950" : "#f85149" } }, cashPct + "%")
+          )
+        ),
+        React.createElement("div", { style: { fontSize: 11, color: "#6e7681", marginTop: 6 } }, "Target: " + fg(Math.round(total * 0.15)) + " - " + fg(Math.round(total * 0.17)))
+      ),
+
+      tab === "edit" && React.createElement("div", null,
+        React.createElement("div", { style: { fontSize: 11, color: "#e2b340", marginBottom: 12 } }, "Tap to update shares, avg, and fallback value."),
+        data.map(function(p) {
+          var isE = editing === p.t;
+          var bc = p.cat === "growth" ? "#e2b340" : p.cat === "hedge" ? "#d4a017" : "#4a9eff";
+          var pd = getP(p);
+          return React.createElement("div", { key: p.t, style: Object.assign({}, card, { borderLeft: "3px solid " + bc, background: isE ? "#1c2333" : "#161b22" }) },
+            React.createElement("div", { onClick: function() { if (!isE) startEdit(p); }, style: { cursor: isE ? "default" : "pointer" } },
+              React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center" } },
+                React.createElement("div", null,
+                  React.createElement("span", { style: { fontSize: 15, fontWeight: 700, color: "#f0f6fc" } }, p.t),
+                  React.createElement("span", { style: { fontSize: 12, color: "#8b949e", marginLeft: 8 } }, p.n)
+                ),
+                !isE && React.createElement("div", { style: { textAlign: "right" } },
+                  React.createElement("div", { style: { fontSize: 13, color: "#c9d1d9" } }, pd && pd.p ? fp(pd.p, p.cur) : fp(p.avg, p.cur)),
+                  React.createElement("div", { style: { fontSize: 11, color: "#6e7681" } }, p.sh.toLocaleString() + " @ " + fp(p.avg, p.cur))
+                )
+              )
+            ),
+            isE && React.createElement("div", { style: { marginTop: 12 } },
+              React.createElement("div", { style: { display: "flex", gap: 8, marginBottom: 8 } },
+                React.createElement("div", { style: { flex: 1 } },
+                  React.createElement("div", { style: { fontSize: 10, color: "#8b949e", marginBottom: 3 } }, "SHARES"),
+                  React.createElement("input", { type: "number", value: fSh, onChange: function(e) { setFSh(e.target.value); }, style: iS, inputMode: "decimal" })
+                ),
+                React.createElement("div", { style: { flex: 1 } },
+                  React.createElement("div", { style: { fontSize: 10, color: "#8b949e", marginBottom: 3 } }, "AVG " + (p.cur === "GBP" ? "(PENCE)" : "(USD)")),
+                  React.createElement("input", { type: "number", value: fAv, onChange: function(e) { setFAv(e.target.value); }, style: iS, inputMode: "decimal", step: "0.01" })
+                )
+              ),
+              React.createElement("div", { style: { marginBottom: 10 } },
+                React.createElement("div", { style: { fontSize: 10, color: "#8b949e", marginBottom: 3 } }, "FALLBACK VALUE (\u00A3)"),
+                React.createElement("input", { type: "number", value: fCv, onChange: function(e) { setFCv(e.target.value); }, style: iS, inputMode: "decimal" })
+              ),
+              React.createElement("div", { style: { display: "flex", gap: 8 } },
+                React.createElement("button", { onClick: applyEdit, style: bG }, "Apply"),
+                React.createElement("button", { onClick: function() { setEditing(null); }, style: bC }, "Cancel")
+              )
+            )
+          );
+        }),
+        React.createElement("div", { style: { marginTop: 20, textAlign: "center" } },
+          React.createElement("button", { onClick: function() { if (confirm("Reset all?")) { setData(INIT); setCash(212128.65); doSave(INIT, 212128.65); }}, style: { padding: "8px 20px", background: "transparent", color: "#f85149", border: "1px solid #f8514930", borderRadius: 6, fontSize: 12, cursor: "pointer" } }, "Reset All")
+        )
+      )
+    ),
+
+    // Footer
+    React.createElement("div", { style: { padding: 12, borderTop: "1px solid #21262d", background: "#161b22", fontSize: 10, color: "#484f58" } },
+      "Std: sell 25% above avg, harvest to hold 10% profit. Growth: 15% ceiling trim to 10%. Fees: 10/trade"
+    )
+  );
+}
+
+ReactDOM.render(React.createElement(App), document.getElementById("root"));
+</script>
+</body>
+</html>
