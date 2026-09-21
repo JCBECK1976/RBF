@@ -19,28 +19,27 @@ input[type=number],input[type=text]{-webkit-appearance:none}
 <body>
 <div id="root"></div>
 <script type="text/babel">
-var SK="rbf-v7",PK="rbf-prices-v1",TK="rbf-txns-v1",DEFAULT_FX=1.35;
+var SK="rbf-v8",PK="rbf-prices-v1",TK="rbf-txns-v1",DEFAULT_FX=1.35;
 var SHEET_ID="1VGCHOdXhRkYwY6SlavVUoSL4cSyYOe7efCuUM5LiO7g";
 
 var INIT=[
-{t:"BE",n:"Bloom Energy",cat:"growth",bkt:20000,sh:287,avg:47.038,cur:"USD",cv:57374},
-{t:"IONQ",n:"IonQ",cat:"growth",bkt:10000,sh:400,avg:33.75,cur:"USD",cv:11325},
-{t:"QS",n:"QuantumScape",cat:"growth",bkt:10000,sh:2741,avg:4.925,cur:"USD",cv:10622,sp:6.27},
-{t:"BROS",n:"Dutch Bros",cat:"std",bkt:20000,sh:596,avg:45.302,cur:"USD",cv:19893},
-{t:"SFM",n:"Sprouts Farmers",cat:"std",bkt:20000,sh:364,avg:74.176,cur:"USD",cv:19756},
-{t:"NOW",n:"ServiceNow",cat:"std",bkt:20000,sh:102,avg:132.353,cur:"USD",cv:9928},
-{t:"DFS",n:"DFS Furniture",cat:"std",bkt:20000,sh:14065,avg:142.197,cur:"GBP",cv:20394},
-{t:"PATH",n:"UiPath",cat:"std",bkt:10000,sh:988,avg:13.664,cur:"USD",cv:9953},
-{t:"AMZN",n:"Amazon",cat:"std",bkt:10000,sh:61,avg:221.311,cur:"USD",cv:11430},
-{t:"TSM",n:"TSMC",cat:"std",bkt:10000,sh:36,avg:375.0,cur:"USD",cv:11635},
-{t:"BTRW",n:"Barratt Redrow",cat:"std",bkt:20000,sh:3657,avg:273.449,cur:"GBP",cv:10744},
-{t:"DNLM",n:"Dunelm",cat:"std",bkt:20000,sh:2781,avg:719.166,cur:"GBP",cv:20412},
-{t:"AV.",n:"Aviva",cat:"std",bkt:20000,sh:3033,avg:659.413,cur:"GBP",cv:21376},
-{t:"WIX",n:"Wickes",cat:"std",bkt:20000,sh:11840,avg:168.919,cur:"GBP",cv:21548},
-{t:"RMV",n:"Rightmove",cat:"std",bkt:20000,sh:4316,avg:463.392,cur:"GBP",cv:20164},
-{t:"AUTO",n:"Auto Trader",cat:"std",bkt:20000,sh:4071,avg:491.28,cur:"GBP",cv:19907},
-{t:"SGLN",n:"Gold ETC",cat:"hedge",bkt:20000,sh:348,avg:5747.126,cur:"GBP",cv:21924},
-{t:"SSLN",n:"Silver ETC",cat:"hedge",bkt:20000,sh:512,avg:3906.25,cur:"GBP",cv:24176}
+{t:"BE",n:"Bloom Energy",cat:"growth",bkt:20000,sh:287,avg:47.038,cur:"USD",cv:58585},
+{t:"IONQ",n:"IonQ",cat:"growth",bkt:10000,sh:400,avg:33.75,cur:"USD",cv:12077},
+{t:"QS",n:"QuantumScape",cat:"growth",bkt:10000,sh:2741,avg:4.925,cur:"USD",cv:10510,sp:6.27},
+{t:"BROS",n:"Dutch Bros",cat:"std",bkt:20000,sh:698,avg:38.682,cur:"USD",cv:20090},
+{t:"SFM",n:"Sprouts Farmers",cat:"std",bkt:20000,sh:385,avg:70.13,cur:"USD",cv:20109},
+{t:"NOW",n:"ServiceNow",cat:"std",bkt:20000,sh:102,avg:132.353,cur:"USD",cv:10433},
+{t:"DFS",n:"DFS Furniture",cat:"std",bkt:20000,sh:14972,avg:133.583,cur:"GBP",cv:20811},
+{t:"PATH",n:"UiPath",cat:"std",bkt:10000,sh:988,avg:13.664,cur:"USD",cv:9957},
+{t:"TSM",n:"TSMC",cat:"std",bkt:10000,sh:36,avg:375.0,cur:"USD",cv:11828},
+{t:"BTRW",n:"Barratt Redrow",cat:"std",bkt:20000,sh:3657,avg:273.449,cur:"GBP",cv:11110},
+{t:"DNLM",n:"Dunelm",cat:"std",bkt:20000,sh:2781,avg:719.166,cur:"GBP",cv:21873},
+{t:"AV.",n:"Aviva",cat:"std",bkt:20000,sh:3033,avg:659.413,cur:"GBP",cv:21862},
+{t:"WIX",n:"Wickes",cat:"std",bkt:20000,sh:11840,avg:168.919,cur:"GBP",cv:23183},
+{t:"RMV",n:"Rightmove",cat:"std",bkt:20000,sh:4316,avg:463.392,cur:"GBP",cv:21813},
+{t:"AUTO",n:"Auto Trader",cat:"std",bkt:20000,sh:4071,avg:491.28,cur:"GBP",cv:20278},
+{t:"SGLN",n:"Gold ETC",cat:"hedge",bkt:120000,sh:1933,avg:6207.967,cur:"GBP",cv:122050},
+{t:"SSLN",n:"Silver ETC",cat:"hedge",bkt:20000,sh:512,avg:3906.25,cur:"GBP",cv:24105}
 ];
 
 function sellAt(p,fx){var fee=10,h=p.bkt>=20000?3000:p.bkt>=15000?2250:1500,hT=p.cur==="GBP"?h:h*fx,raw=p.avg*1.25,s=raw>0?(hT+fee)/(p.cur==="GBP"?raw/100:raw):0,a=s>0?fee/s:0;return p.cur==="GBP"?Math.ceil((raw+a*100)*100)/100:Math.ceil((raw+a)*100)/100}
@@ -56,7 +55,7 @@ function parseCsvLine(line){var r=[],cur="",inQ=false;for(var i=0;i<line.length;
 
 function App(){
 var h=React.useState,u=React.useEffect;
-var[data,setData]=h(INIT),[cash,setCash]=h(212128.65),[tab,setTab]=h("main");
+var[data,setData]=h(INIT),[cash,setCash]=h(120161.14),[tab,setTab]=h("main");
 var[editing,setEditing]=h(null),[fSh,setFSh]=h(""),[fAv,setFAv]=h(""),[fCv,setFCv]=h(""),[fBkt,setFBkt]=h("");
 var[editH,setEditH]=h(false),[fC,setFC]=h(""),[msg,setMsg]=h("");
 var[prices,setPrices]=h({}),[priceStatus,setPriceStatus]=h("idle"),[priceTime,setPriceTime]=h(""),[fx,setFx]=h(DEFAULT_FX);
@@ -390,7 +389,7 @@ return React.createElement("div",{style:{background:"#0d1117",color:"#c9d1d9",mi
               React.createElement("button",{onClick:function(){setEditing(null)},style:bC},"Cancel"))))
       }),
       React.createElement("div",{style:{marginTop:20,textAlign:"center"}},
-        React.createElement("button",{onClick:function(){if(confirm("Reset all?")){setData(INIT);setCash(212128.65);doSave(INIT,212128.65)}},style:{padding:"8px 20px",background:"transparent",color:"#f85149",border:"1px solid #f8514930",borderRadius:6,fontSize:12,cursor:"pointer"}},"Reset All"))),
+        React.createElement("button",{onClick:function(){if(confirm("Reset all?")){setData(INIT);setCash(120161.14);doSave(INIT,212128.65)}},style:{padding:"8px 20px",background:"transparent",color:"#f85149",border:"1px solid #f8514930",borderRadius:6,fontSize:12,cursor:"pointer"}},"Reset All"))),
 
     // === UPLOAD TAB ===
     tab==="upload"&&React.createElement("div",null,
