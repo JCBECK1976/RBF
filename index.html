@@ -19,7 +19,7 @@ input[type=number],input[type=text]{-webkit-appearance:none}
 <body>
 <div id="root"></div>
 <script type="text/babel">
-var SK="rbf-v9",PK="rbf-prices-v1",TK="rbf-txns-v1",DEFAULT_FX=1.35;
+var SK="rbf-v10",PK="rbf-prices-v1",TK="rbf-txns-v1",DEFAULT_FX=1.35;
 var SHEET_ID="1VGCHOdXhRkYwY6SlavVUoSL4cSyYOe7efCuUM5LiO7g";
 
 var INIT=[
@@ -55,7 +55,7 @@ function parseCsvLine(line){var r=[],cur="",inQ=false;for(var i=0;i<line.length;
 
 function App(){
 var h=React.useState,u=React.useEffect;
-var[data,setData]=h(INIT),[cash,setCash]=h(120161.14),[tab,setTab]=h("main");
+var[data,setData]=h(INIT),[cash,setCash]=h(118570),[tab,setTab]=h("main");
 var[editing,setEditing]=h(null),[fSh,setFSh]=h(""),[fAv,setFAv]=h(""),[fCv,setFCv]=h(""),[fBkt,setFBkt]=h("");
 var[editH,setEditH]=h(false),[fC,setFC]=h(""),[msg,setMsg]=h("");
 var[prices,setPrices]=h({}),[priceStatus,setPriceStatus]=h("idle"),[priceTime,setPriceTime]=h(""),[fx,setFx]=h(DEFAULT_FX);
@@ -389,7 +389,7 @@ return React.createElement("div",{style:{background:"#0d1117",color:"#c9d1d9",mi
               React.createElement("button",{onClick:function(){setEditing(null)},style:bC},"Cancel"))))
       }),
       React.createElement("div",{style:{marginTop:20,textAlign:"center"}},
-        React.createElement("button",{onClick:function(){if(confirm("Reset all?")){setData(INIT);setCash(120161.14);doSave(INIT,212128.65)}},style:{padding:"8px 20px",background:"transparent",color:"#f85149",border:"1px solid #f8514930",borderRadius:6,fontSize:12,cursor:"pointer"}},"Reset All"))),
+        React.createElement("button",{onClick:function(){if(confirm("Reset all?")){setData(INIT);setCash(118570);doSave(INIT,212128.65)}},style:{padding:"8px 20px",background:"transparent",color:"#f85149",border:"1px solid #f8514930",borderRadius:6,fontSize:12,cursor:"pointer"}},"Reset All"))),
 
     // === UPLOAD TAB ===
     tab==="upload"&&React.createElement("div",null,
