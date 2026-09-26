@@ -19,27 +19,27 @@ input[type=number],input[type=text]{-webkit-appearance:none}
 <body>
 <div id="root"></div>
 <script type="text/babel">
-var SK="rbf-v8",PK="rbf-prices-v1",TK="rbf-txns-v1",DEFAULT_FX=1.35;
+var SK="rbf-v9",PK="rbf-prices-v1",TK="rbf-txns-v1",DEFAULT_FX=1.35;
 var SHEET_ID="1VGCHOdXhRkYwY6SlavVUoSL4cSyYOe7efCuUM5LiO7g";
 
 var INIT=[
-{t:"BE",n:"Bloom Energy",cat:"growth",bkt:20000,sh:287,avg:47.038,cur:"USD",cv:58585},
-{t:"IONQ",n:"IonQ",cat:"growth",bkt:10000,sh:400,avg:33.75,cur:"USD",cv:12077},
-{t:"QS",n:"QuantumScape",cat:"growth",bkt:10000,sh:2741,avg:4.925,cur:"USD",cv:10510,sp:6.27},
-{t:"BROS",n:"Dutch Bros",cat:"std",bkt:20000,sh:698,avg:38.682,cur:"USD",cv:20090},
-{t:"SFM",n:"Sprouts Farmers",cat:"std",bkt:20000,sh:385,avg:70.13,cur:"USD",cv:20109},
-{t:"NOW",n:"ServiceNow",cat:"std",bkt:20000,sh:102,avg:132.353,cur:"USD",cv:10433},
-{t:"DFS",n:"DFS Furniture",cat:"std",bkt:20000,sh:14972,avg:133.583,cur:"GBP",cv:20811},
-{t:"PATH",n:"UiPath",cat:"std",bkt:10000,sh:988,avg:13.664,cur:"USD",cv:9957},
-{t:"TSM",n:"TSMC",cat:"std",bkt:10000,sh:36,avg:375.0,cur:"USD",cv:11828},
-{t:"BTRW",n:"Barratt Redrow",cat:"std",bkt:20000,sh:3657,avg:273.449,cur:"GBP",cv:11110},
-{t:"DNLM",n:"Dunelm",cat:"std",bkt:20000,sh:2781,avg:719.166,cur:"GBP",cv:21873},
-{t:"AV.",n:"Aviva",cat:"std",bkt:20000,sh:3033,avg:659.413,cur:"GBP",cv:21862},
-{t:"WIX",n:"Wickes",cat:"std",bkt:20000,sh:11840,avg:168.919,cur:"GBP",cv:23183},
-{t:"RMV",n:"Rightmove",cat:"std",bkt:20000,sh:4316,avg:463.392,cur:"GBP",cv:21813},
-{t:"AUTO",n:"Auto Trader",cat:"std",bkt:20000,sh:4071,avg:491.28,cur:"GBP",cv:20278},
-{t:"SGLN",n:"Gold ETC",cat:"hedge",bkt:120000,sh:1933,avg:6207.967,cur:"GBP",cv:122050},
-{t:"SSLN",n:"Silver ETC",cat:"hedge",bkt:20000,sh:512,avg:3906.25,cur:"GBP",cv:24105}
+{t:"BE",n:"Bloom Energy",cat:"growth",bkt:20000,sh:287,avg:47.038,cur:"USD",cv:61536},
+{t:"IONQ",n:"IonQ",cat:"growth",bkt:10000,sh:400,avg:33.75,cur:"USD",cv:13504},
+{t:"QS",n:"QuantumScape",cat:"growth",bkt:10000,sh:2741,avg:4.925,cur:"USD",cv:9991,sp:6.27},
+{t:"BROS",n:"Dutch Bros",cat:"std",bkt:20000,sh:705,avg:38.298,cur:"USD",cv:19834},
+{t:"SFM",n:"Sprouts Farmers",cat:"std",bkt:20000,sh:424,avg:63.679,cur:"USD",cv:19666},
+{t:"NOW",n:"ServiceNow",cat:"std",bkt:20000,sh:102,avg:132.353,cur:"USD",cv:10274},
+{t:"DFS",n:"DFS Furniture",cat:"std",bkt:20000,sh:14972,avg:133.583,cur:"GBP",cv:21784},
+{t:"PATH",n:"UiPath",cat:"std",bkt:10000,sh:1075,avg:12.558,cur:"USD",cv:9942},
+{t:"TSM",n:"TSMC",cat:"std",bkt:10000,sh:36,avg:375.0,cur:"USD",cv:12039},
+{t:"BTRW",n:"Barratt Redrow",cat:"std",bkt:20000,sh:3657,avg:273.449,cur:"GBP",cv:11300},
+{t:"DNLM",n:"Dunelm",cat:"std",bkt:20000,sh:2781,avg:719.166,cur:"GBP",cv:21743},
+{t:"AV.",n:"Aviva",cat:"std",bkt:20000,sh:3033,avg:659.413,cur:"GBP",cv:21213},
+{t:"WIX",n:"Wickes",cat:"std",bkt:20000,sh:11840,avg:168.919,cur:"GBP",cv:23680},
+{t:"RMV",n:"Rightmove",cat:"std",bkt:20000,sh:4316,avg:463.392,cur:"GBP",cv:19029},
+{t:"AUTO",n:"Auto Trader",cat:"std",bkt:20000,sh:4071,avg:491.28,cur:"GBP",cv:18580},
+{t:"SGLN",n:"Gold ETC",cat:"hedge",bkt:120000,sh:1933,avg:6207.967,cur:"GBP",cv:121257},
+{t:"SSLN",n:"Silver ETC",cat:"hedge",bkt:20000,sh:512,avg:3906.25,cur:"GBP",cv:23619}
 ];
 
 function sellAt(p,fx){var fee=10,h=p.bkt>=20000?3000:p.bkt>=15000?2250:1500,hT=p.cur==="GBP"?h:h*fx,raw=p.avg*1.25,s=raw>0?(hT+fee)/(p.cur==="GBP"?raw/100:raw):0,a=s>0?fee/s:0;return p.cur==="GBP"?Math.ceil((raw+a*100)*100)/100:Math.ceil((raw+a)*100)/100}
